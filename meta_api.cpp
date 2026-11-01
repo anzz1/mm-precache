@@ -60,8 +60,8 @@ static META_FUNCTIONS gMetaFunctionTable = {
 plugin_info_t Plugin_info = {
 	META_INTERFACE_VERSION,	// ifvers
 	"Precache",	// name
-	"1.0",	// version
-	"2024/01/21",	// date
+	"1.1",	// version
+	"2026/11/01",	// date
 	"anzz1",	// author
 	"http://github.com/anzz1/mm-precache",	// url
 	"PRECACHE",	// logtag, all caps please

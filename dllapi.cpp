@@ -114,8 +114,10 @@ void readConfig() {
 	if (fp) {
 		while (fgets(path, sizeof(path), fp) && precache_count < MAX_PRECACHE_COUNT) {
 			if (path[0] == '\r' || path[0] == '\n' || path[0] == ';' || path[0] == '#' || (path[0] == '/' && path[1] == '/')) continue;
+			bool force_generic = path[0] == '*';
+			char *ppath = force_generic ? path+1 : path;
 			char *ext = 0;
-			char *p = path;
+			char *p = ppath;
 			while (*p) {
 				if (*p == '\r' || *p == '\n') {
 					*p = 0;
@@ -125,22 +127,26 @@ void readConfig() {
 				}
 				p++;
 			}
-			if (ext && file_exists(path)) {
-				strcpy(precache_list[precache_count].path, path);
-				if ((ext[1] == 'm' || ext[1] == 'M') &&
-					  (ext[2] == 'd' || ext[2] == 'D') &&
-					  (ext[3] == 'l' || ext[3] == 'L')) {
-					precache_list[precache_count].type = T_MODEL;
-				} else if ((ext[1] == 'w' || ext[1] == 'W') &&
-					(ext[2] == 'a' || ext[2] == 'A') &&
-					(ext[3] == 'v' || ext[3] == 'V')) {
-					precache_list[precache_count].type = T_SOUND;
-				} else {
-					precache_list[precache_count].type = T_GENERIC;
+			if (ext && file_exists(ppath)) {
+				strcpy(precache_list[precache_count].path, ppath);
+				precache_list[precache_count].type = T_GENERIC;
+				if (!force_generic) {
+					if (((ext[1] == 'm' || ext[1] == 'M') &&
+							 (ext[2] == 'd' || ext[2] == 'D') &&
+							 (ext[3] == 'l' || ext[3] == 'L')) ||
+							((ext[1] == 's' || ext[1] == 'S') &&
+							 (ext[2] == 'p' || ext[2] == 'P') &&
+							 (ext[3] == 'r' || ext[3] == 'R'))) {
+						precache_list[precache_count].type = T_MODEL;
+					} else if ((ext[1] == 'w' || ext[1] == 'W') &&
+						(ext[2] == 'a' || ext[2] == 'A') &&
+						(ext[3] == 'v' || ext[3] == 'V')) {
+						precache_list[precache_count].type = T_SOUND;
+					}
 				}
 				precache_count++;
 			} else {
-				LOG_ERROR(PLID, "Could not access entry, ignoring: \"%s\"", path);
+				LOG_ERROR(PLID, "Could not access entry, ignoring: \"%s\"", ppath);
 			}
 		}
 		fclose(fp);
@@ -156,16 +162,16 @@ void ServerActivate(edict_t *pEdictList, int edictCount, int clientMax) {
 		LOG_MESSAGE(PLID, "Precaching item %u: \"%s\" (%s)", i+1, precache_list[i].path,
 			((precache_list[i].type == T_MODEL) ? "model" : ((precache_list[i].type == T_SOUND) ? "sound" : "generic")));
 		switch (precache_list[i].type) {
-		  case T_MODEL:
-			  g_engfuncs.pfnPrecacheModel(precache_list[i].path);
-			  break;
-		  case T_SOUND:
-			  g_engfuncs.pfnPrecacheSound(precache_list[i].path);
-			  break;
-		  case T_GENERIC:
-		  default:
-			  g_engfuncs.pfnPrecacheGeneric(precache_list[i].path);
-			  break;
+			case T_MODEL:
+				g_engfuncs.pfnPrecacheModel(precache_list[i].path);
+				break;
+			case T_SOUND:
+				g_engfuncs.pfnPrecacheSound(precache_list[i].path);
+				break;
+			case T_GENERIC:
+			default:
+				g_engfuncs.pfnPrecacheGeneric(precache_list[i].path);
+				break;
 		}
 	}
 	RETURN_META(MRES_HANDLED);
